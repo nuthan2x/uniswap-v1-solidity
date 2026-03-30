@@ -64,7 +64,7 @@ contract Exchange is ERC20 {
             return liquidity_minted;
         } else {
             require(msg.value >= 1e9); // 1 gwei mininmum
-            // require(factory.getExchange(token) == address(this));
+            require(factory.getExchange(token) == address(this));
             uint256 token_amount = max_tokens;
             uint256 initial_liquidity = address(this).balance;
 
@@ -147,7 +147,7 @@ contract Exchange is ERC20 {
     /// @notice Convert ETH to Tokens.
     /// @dev User specifies exact input (msg.value).
     /// @dev User cannot specify minimum output or deadline.
-    receive() external payable {
+    fallback() external payable {
         ethToTokenInput(msg.value, 1, block.timestamp, msg.sender, msg.sender);
     }
 
@@ -231,7 +231,7 @@ contract Exchange is ERC20 {
         require(deadline >= block.timestamp && (tokens_bought > 0 && max_eth > 0));
         
         uint256 token_reserve = IERC20(token).balanceOf(address(this));
-        uint256 eth_reserve = address(this).balance;
+        uint256 eth_reserve = address(this).balance - max_eth;
         uint256 eth_sold = getOutputPrice(tokens_bought, eth_reserve, token_reserve);
         
         uint256 eth_refund = max_eth - eth_sold;

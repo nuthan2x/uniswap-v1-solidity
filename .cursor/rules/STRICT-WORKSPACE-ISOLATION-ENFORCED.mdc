@@ -1,0 +1,9 @@
+---
+alwaysApply: true
+---
+
+## STRICT WORKSPACE ISOLATION (ENFORCED)
+- ONLY access, read, or edit files inside the CURRENT workspace folder.
+- NEVER use absolute paths, ../, or any path outside the workspace root.
+- NEVER run commands that could affect files outside the workspace.
+- If a task requires something outside, ask me first.
