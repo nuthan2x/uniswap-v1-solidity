@@ -1,13 +1,32 @@
-## Foundry
+### Disclaimer
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+**Use at your own risk.** This is an unaudited implementation for educational and testing purposes only. Do not use in production without thorough security review.## Uniswap V1: Vyper to Solidity Port
 
-Foundry consists of:
+This repository contains a **Solidity port** of the original Uniswap V1 contracts written in Vyper. The original Vyper contracts are preserved in the https://github.com/Uniswap/v1-contracts or [`vyper-original/`](vyper-original/) directory for reference.
 
-- **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
-- **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
-- **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
-- **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+### Conversion Details
+
+The conversion from Vyper to Solidity involved several key changes:
+
+- **Safe Token Transfers**: Uses OpenZeppelin's `SafeERC20` for secure token operations
+- **Error Handling**: Converted `assert` statements to Solidity's `require`
+
+### Key Differences
+
+| Aspect | Vyper Original | Solidity Port |
+|--------|---------------|---------------|
+| **Token Standard** | Custom ERC20 | OpenZeppelin ERC20 |
+| **Initialization** | `setup(token_addr)` function | Constructor `constructor(address token_addr)` |
+| **Token Transfers** | Direct `transfer()` calls | `safeTransfer()` and `safeTransferFrom()` |
+
+### Files
+
+- [`src/Factory.sol`](src/Factory.sol) - Factory contract for creating exchanges
+- [`src/Exchange.sol`](src/Exchange.sol) - Exchange contract for token/ETH swaps
+- [`vyper-original/uniswap_factory.vy`](vyper-original/uniswap_factory.vy) - Original Vyper factory
+- [`vyper-original/uniswap_exchange.vy`](vyper-original/uniswap_exchange.vy) - Original Vyper exchange
+
+
 
 ## Documentation
 
