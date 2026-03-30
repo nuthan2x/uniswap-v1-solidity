@@ -1,6 +1,8 @@
 ### Disclaimer
 
-**Use at your own risk.** This is an unaudited implementation for educational and testing purposes only. Do not use in production without thorough security review.## Uniswap V1: Vyper to Solidity Port
+**Use at your own risk.** This is an unaudited implementation for educational and testing purposes only. Do not use in production without thorough security review.
+
+## Uniswap V1: Vyper to Solidity Port
 
 This repository contains a **Solidity port** of the original Uniswap V1 contracts written in Vyper. The original Vyper contracts are preserved in the https://github.com/Uniswap/v1-contracts or [`vyper-original/`](vyper-original/) directory for reference.
 
