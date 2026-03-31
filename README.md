@@ -2,9 +2,12 @@
 
 **Use at your own risk.** This is an unaudited implementation for educational and testing purposes only. Do not use in production without thorough security review.
 
-## Uniswap V1: Vyper to Solidity Port
+## Uniswap V1: Vyper to Solidity Port 
+
+Also added **flash loan functionality** compliant with [ERC-3156: Flash Loans](https://eips.ethereum.org/EIPS/eip-3156).
 
 This repository contains a **Solidity port** of the original Uniswap V1 contracts written in Vyper. The original Vyper contracts are preserved in the https://github.com/Uniswap/v1-contracts or [`vyper-original/`](vyper-original/) directory for reference.
+  
 
 ### Conversion Details
 
