@@ -3,6 +3,9 @@ pragma solidity 0.8.30;
 
 import {ERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+
+import {IERC3156FlashLender, IERC3156FlashBorrower} from "./IFlashloanEIP3156.sol";
 import {Factory} from "./Factory.sol";
 
 interface IFactory {
@@ -19,7 +22,7 @@ interface IExchange {
 /// @author https://x.com/nuthan2x || https://github.com/nuthan2x
 /// @notice core exchange between an ERC20 and native ETH
 /// @notice Use at your own risk && un-audited
-contract Exchange is ERC20 {
+contract Exchange is ERC20, ReentrancyGuard, IERC3156FlashLender {
     using SafeERC20 for IERC20;
 
     event TokenPurchase(address indexed buyer, uint256 eth_sold, uint256 tokens_bought);
@@ -44,7 +47,7 @@ contract Exchange is ERC20 {
     /// @param max_tokens Maximum number of tokens deposited. Deposits max amount if total UNI supply is 0.
     /// @param deadline Time after which this transaction can no longer be executed.
     /// @return The amount of UNI minted.
-    function addLiquidity(uint256 min_liquidity, uint256 max_tokens, uint256 deadline) public payable returns(uint256){
+    function addLiquidity(uint256 min_liquidity, uint256 max_tokens, uint256 deadline) public payable nonReentrant returns(uint256){
         require(deadline > block.timestamp && max_tokens > 0 && msg.value > 0);
         uint256 total_liquidity = totalSupply();
 
@@ -87,7 +90,7 @@ contract Exchange is ERC20 {
         uint256 min_eth, 
         uint256 min_tokens, 
         uint256 deadline
-    ) public returns(uint256, uint256) {
+    ) public nonReentrant returns(uint256, uint256) {
         require(amount > 0 && deadline > block.timestamp);
         require(min_eth >0 && min_tokens > 0);
 
@@ -147,7 +150,7 @@ contract Exchange is ERC20 {
     /// @notice Convert ETH to Tokens.
     /// @dev User specifies exact input (msg.value).
     /// @dev User cannot specify minimum output or deadline.
-    fallback() external payable {
+    fallback() external payable nonReentrant {
         ethToTokenInput(msg.value, 1, block.timestamp, msg.sender, msg.sender);
     }
 
@@ -156,7 +159,7 @@ contract Exchange is ERC20 {
     /// @param min_tokens Minimum Tokens bought.
     /// @param deadline Time after which this transaction can no longer be executed.
     /// @return Amount of Tokens bought.
-    function ethToTokenSwapInput(uint256 min_tokens, uint256 deadline) public payable returns(uint256) {
+    function ethToTokenSwapInput(uint256 min_tokens, uint256 deadline) public payable nonReentrant returns(uint256) {
         return ethToTokenInput(msg.value, min_tokens, deadline, msg.sender, msg.sender);
     }
 
@@ -168,7 +171,7 @@ contract Exchange is ERC20 {
     /// @return Amount of Tokens bought.
     function ethToTokenTransferInput(
         uint256 min_tokens, uint256 deadline, address recipient
-    ) public payable returns(uint256) {
+    ) public payable nonReentrant returns(uint256) {
         require(recipient != address(this) && recipient != address(0));
         return ethToTokenInput(msg.value, min_tokens, deadline, msg.sender, recipient);
     }
@@ -204,7 +207,7 @@ contract Exchange is ERC20 {
     /// @param tokens_bought Amount of tokens bought.
     /// @param deadline Time after which this transaction can no longer be executed.
     /// @return Amount of ETH sold.
-    function ethToTokenSwapOutput(uint256 tokens_bought, uint256 deadline) public payable returns(uint256) {
+    function ethToTokenSwapOutput(uint256 tokens_bought, uint256 deadline) public payable nonReentrant returns(uint256) {
         return ethToTokenOutput(tokens_bought, msg.value, deadline, msg.sender, msg.sender);
     }
 
@@ -216,7 +219,7 @@ contract Exchange is ERC20 {
     /// @return Amount of ETH sold.
     function ethToTokenTransferOutput(
         uint256 tokens_bought, uint256 deadline, address recipient
-    ) public payable returns(uint256) {
+    ) public payable nonReentrant returns(uint256) {
         require(recipient != address(this) && recipient != address(0));
         return ethToTokenOutput(tokens_bought, msg.value, deadline, msg.sender, recipient);
     }
@@ -251,7 +254,7 @@ contract Exchange is ERC20 {
     /// @return Amount of ETH bought.
     function tokenToEthSwapInput(
         uint256 tokens_sold, uint256 min_eth, uint256 deadline
-    ) public returns (uint256) {
+    ) public nonReentrant returns (uint256) {
         return tokenToEthInput(tokens_sold, min_eth, deadline, msg.sender, msg.sender);
     }
 
@@ -264,7 +267,7 @@ contract Exchange is ERC20 {
     /// @return Amount of ETH bought.
     function tokenToEthTransferInput(
         uint256 tokens_sold, uint256 min_eth, uint256 deadline, address recipient
-    ) public returns (uint256) {
+    ) public nonReentrant returns (uint256) {
         require(recipient != address(this) && recipient != address(0));
         return tokenToEthInput(tokens_sold, min_eth, deadline, msg.sender, recipient);
     }
@@ -298,7 +301,7 @@ contract Exchange is ERC20 {
     /// @return Amount of Tokens sold.
     function tokenToEthSwapOutput(
         uint256 eth_bought, uint256 max_tokens, uint256 deadline
-    ) public returns (uint256) {
+    ) public nonReentrant returns (uint256) {
         return tokenToEthOutput(eth_bought, max_tokens, deadline, msg.sender, msg.sender);
     }
 
@@ -311,7 +314,7 @@ contract Exchange is ERC20 {
     /// @return Amount of Tokens sold.
     function tokenToEthTransferOutput(
         uint256 eth_bought, uint256 max_tokens, uint256 deadline, address recipient
-    ) public returns (uint256) {
+    ) public nonReentrant returns (uint256) {
         require(recipient != address(this) && recipient != address(0));
         return tokenToEthOutput(eth_bought, max_tokens, deadline, msg.sender, recipient);
     }
@@ -351,7 +354,7 @@ contract Exchange is ERC20 {
         uint256 min_eth_bought, 
         uint256 deadline, 
         address token_addr
-    ) public returns (uint256) {
+    ) public nonReentrant returns (uint256) {
         address exchange_addr = factory.getExchange(token_addr);
         return tokenToTokenInput(tokens_sold, min_tokens_bought, min_eth_bought, deadline, msg.sender, msg.sender, exchange_addr);
     }
@@ -373,7 +376,7 @@ contract Exchange is ERC20 {
         uint256 deadline, 
         address recipient, 
         address token_addr
-    ) public returns (uint256) {
+    ) public nonReentrant returns (uint256) {
         address exchange_addr = factory.getExchange(token_addr);
         return tokenToTokenInput(tokens_sold, min_tokens_bought, min_eth_bought, deadline, msg.sender, recipient, exchange_addr);
     }
@@ -413,7 +416,7 @@ contract Exchange is ERC20 {
     /// @param deadline Time after which this transaction can no longer be executed.
     /// @param token_addr The address of the token being purchased.
     /// @return Amount of Tokens (self.token) sold.
-    function tokenToTokenSwapOutput(uint256 tokens_bought, uint256 max_tokens_sold, uint256 max_eth_sold, uint256 deadline, address token_addr) public returns (uint256) {
+    function tokenToTokenSwapOutput(uint256 tokens_bought, uint256 max_tokens_sold, uint256 max_eth_sold, uint256 deadline, address token_addr) public nonReentrant returns (uint256) {
         address exchange_addr = factory.getExchange(token_addr);
         return tokenToTokenOutput(tokens_bought, max_tokens_sold, max_eth_sold, deadline, msg.sender, msg.sender, exchange_addr);
     }
@@ -428,7 +431,7 @@ contract Exchange is ERC20 {
     /// @param recipient The address that receives output ETH.
     /// @param token_addr The address of the token being purchased.
     /// @return Amount of Tokens (self.token) sold.
-    function tokenToTokenTransferOutput(uint256 tokens_bought, uint256 max_tokens_sold, uint256 max_eth_sold, uint256 deadline, address recipient, address token_addr) public returns (uint256) {
+    function tokenToTokenTransferOutput(uint256 tokens_bought, uint256 max_tokens_sold, uint256 max_eth_sold, uint256 deadline, address recipient, address token_addr) public nonReentrant returns (uint256) {
         address exchange_addr = factory.getExchange(token_addr);
         return tokenToTokenOutput(tokens_bought, max_tokens_sold, max_eth_sold, deadline, msg.sender, recipient, exchange_addr);
     }
@@ -509,7 +512,7 @@ contract Exchange is ERC20 {
     /// @param deadline Time after which this transaction can no longer be executed.
     /// @param exchange_addr The address of the exchange for the token being purchased.
     /// @return Amount of Tokens (exchange_addr.token) bought.
-    function tokenToExchangeSwapInput(uint256 tokens_sold, uint256 min_tokens_bought, uint256 min_eth_bought, uint256 deadline, address exchange_addr) public returns (uint256) {
+    function tokenToExchangeSwapInput(uint256 tokens_sold, uint256 min_tokens_bought, uint256 min_eth_bought, uint256 deadline, address exchange_addr) public nonReentrant returns (uint256) {
         return tokenToTokenInput(tokens_sold, min_tokens_bought, min_eth_bought, deadline, msg.sender, msg.sender, exchange_addr);
     }
 
@@ -524,7 +527,7 @@ contract Exchange is ERC20 {
     /// @param recipient The address that receives output ETH.
     /// @param exchange_addr The address of the exchange for the token being purchased.
     /// @return Amount of Tokens (exchange_addr.token) bought.
-    function tokenToExchangeTransferInput(uint256 tokens_sold, uint256 min_tokens_bought, uint256 min_eth_bought, uint256 deadline, address recipient, address exchange_addr) public returns (uint256) {
+    function tokenToExchangeTransferInput(uint256 tokens_sold, uint256 min_tokens_bought, uint256 min_eth_bought, uint256 deadline, address recipient, address exchange_addr) public nonReentrant returns (uint256) {
         require(recipient != address(this));
         return tokenToTokenInput(tokens_sold, min_tokens_bought, min_eth_bought, deadline, msg.sender, recipient, exchange_addr);
     }
@@ -538,7 +541,7 @@ contract Exchange is ERC20 {
     /// @param deadline Time after which this transaction can no longer be executed.
     /// @param exchange_addr The address of the exchange for the token being purchased.
     /// @return Amount of Tokens (self.token) sold.
-    function tokenToExchangeSwapOutput(uint256 tokens_bought, uint256 max_tokens_sold, uint256 max_eth_sold, uint256 deadline, address exchange_addr) public returns (uint256) {
+    function tokenToExchangeSwapOutput(uint256 tokens_bought, uint256 max_tokens_sold, uint256 max_eth_sold, uint256 deadline, address exchange_addr) public nonReentrant returns (uint256) {
         return tokenToTokenOutput(tokens_bought, max_tokens_sold, max_eth_sold, deadline, msg.sender, msg.sender, exchange_addr);
     }
 
@@ -553,7 +556,7 @@ contract Exchange is ERC20 {
     /// @param recipient The address that receives output ETH.
     /// @param exchange_addr The address of the exchange for the token being purchased.
     /// @return Amount of Tokens (self.token) sold.
-    function tokenToExchangeTransferOutput(uint256 tokens_bought, uint256 max_tokens_sold, uint256 max_eth_sold, uint256 deadline, address recipient, address exchange_addr) public returns (uint256) {
+    function tokenToExchangeTransferOutput(uint256 tokens_bought, uint256 max_tokens_sold, uint256 max_eth_sold, uint256 deadline, address recipient, address exchange_addr) public nonReentrant returns (uint256) {
         require(recipient != address(this));
         return tokenToTokenOutput(tokens_bought, max_tokens_sold, max_eth_sold, deadline, msg.sender, recipient, exchange_addr);
     }
@@ -567,5 +570,48 @@ contract Exchange is ERC20 {
     /// @return Address of factory that created this exchange.
     function factoryAddress() public view returns (address) {
         return address(factory);
+    }
+
+    /////////////////////////////////////////////
+    ///////////////   FLASHLOAN   ///////////////
+    /////////////////////////////////////////////
+
+    /// @inheritdoc IERC3156FlashLender
+    function maxFlashLoan(
+        address _token
+    ) external view returns (uint256) {
+        return _token == token ? IERC20(token).balanceOf(address(this)) : 0;
+    }
+
+    /// @inheritdoc IERC3156FlashLender
+    function flashFee(
+        address _token,
+        uint256 _amount
+    ) external view returns (uint256) {
+        require(_token == token, "FlashLender: Unsupported currency");
+        return (_amount * 3 / 1000) + 1;
+    }
+
+    /// @inheritdoc IERC3156FlashLender
+    function flashLoan(
+        IERC3156FlashBorrower _receiver,
+        address _token,
+        uint256 _amount,
+        bytes calldata _data
+    ) external nonReentrant returns (bool) {
+        require(_token == token, "FlashLender: Unsupported currency");
+
+        uint256 fee = (_amount * 3 / 1000) + 1;
+
+        IERC20(token).safeTransfer(address(_receiver), _amount);
+
+        bytes32 result = _receiver.onFlashLoan(msg.sender, _token, _amount, fee, _data);
+        require(
+            result == keccak256("ERC3156FlashBorrower.onFlashLoan"),
+            "FlashLender: Callback failed"
+        );
+
+        IERC20(token).safeTransferFrom(address(_receiver), address(this), _amount + fee);
+        return true;
     }
 }
