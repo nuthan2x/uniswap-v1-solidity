@@ -150,6 +150,13 @@ contract Exchange is ERC20, ReentrancyGuard, IERC3156FlashLender {
     /// @notice Convert ETH to Tokens.
     /// @dev User specifies exact input (msg.value).
     /// @dev User cannot specify minimum output or deadline.
+    receive() external payable nonReentrant {
+        ethToTokenInput(msg.value, 1, block.timestamp, msg.sender, msg.sender);
+    }
+
+    /// @notice Convert ETH to Tokens.
+    /// @dev User specifies exact input (msg.value).
+    /// @dev User cannot specify minimum output or deadline.
     fallback() external payable nonReentrant {
         ethToTokenInput(msg.value, 1, block.timestamp, msg.sender, msg.sender);
     }
